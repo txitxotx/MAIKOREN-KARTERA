@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Añadir Nuevo Activo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            margin: 0;
+            padding: 20px;
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #ff9800;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #66fcf1;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #ff9800;
+            box-shadow: 0 0 5px rgba(255, 152, 0, 0.5);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #ff9800;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background-color: #e68a00;
+        }
+        
+        button:disabled {
+            background-color: #777;
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .btn-secondary {
+            background-color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+        
+        #message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .success {
+            background-color: rgba(0, 255, 0, 0.1);
+            color: #00FF00;
+            border: 1px solid #00FF00;
+        }
+        
+        .error {
+            background-color: rgba(255, 0, 0, 0.1);
+            color: #FF0000;
+            border: 1px solid #FF0000;
+        }
+        
+        .info {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            border: 1px solid #ff9800;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff9800;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>➕ Añadir Nuevo Activo</h1>
+        
+        <form id="add-asset-form">
+            <div class="form-group">
+                <label for="isin">ISIN / Ticker:</label>
+                <input type="text" id="isin" name="isin" required 
+                       placeholder="Ej: AAPL, BTC-USD, 0P000125T6.F">
+            </div>
+            
+            <div class="form-group">
+                <label for="asset_name">Nombre del Activo:</label>
+                <input type="text" id="asset_name" name="asset_name" required 
+                       placeholder="Ej: Apple Inc., Bitcoin">
+            </div>
+            
+            <div class="form-group">
+                <label for="purchase_value">Valor de Compra (€):</label>
+                <input type="number" id="purchase_value" name="purchase_value" 
+                       step="0.01" min="0" required placeholder="Ej: 150.50">
+            </div>
+            
+            <div class="form-group">
+                <label for="amount">Cantidad (€):</label>
+                <input type="number" id="amount" name="amount" 
+                       step="0.01" min="0" required placeholder="Ej: 1000.00">
+            </div>
+            
+            <div class="form-group">
+                <label for="investment_type">Tipo de Inversión:</label>
+                <select id="investment_type" name="investment_type">
+                    <option value="RENTA VARIABLE">Renta Variable</option>
+                    <option value="RENTA FIJA">Renta Fija</option>
+                    <option value="DCA Y RENTA FIJA">DCA y Renta Fija</option>
+                    <option value="DCA Y RENTA VARIABLE">DCA y Renta Variable</option>
+                    <option value="CRYPTOMONEDAS">Cryptomonedas</option>
+                    <option value="DCA Y CRYPTOMONEDAS">DCA y Cryptomonedas</option>
+                    <option value="ACCIONES">Acciones</option>
+                    <option value="CROWFOUNDING">Crowfounding</option>
+                    <option value="EPSV">EPSV</option>
+                    <option value="CAPITAL RIESGO">Capital Riesgo</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" id="submit-btn">
+                    <span id="submit-text">✅ Guardar Activo</span>
+                    <span id="loading" style="display: none;">
+                        <span class="loading"></span> Guardando...
+                    </span>
+                </button>
+                <button type="button" class="btn-secondary" onclick="window.close()">
+                    ❌ Cancelar
+                </button>
+            </div>
+        </form>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📝 Formulario de añadir activo cargado');
+            
+            const form = document.getElementById('add-asset-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const loading = document.getElementById('loading');
+            const messageDiv = document.getElementById('message');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Mostrar loading
+                submitBtn.disabled = true;
+                submitText.style.display = 'none';
+                loading.style.display = 'inline';
+                
+                // Obtener datos del formulario
+                const formData = {
+                    isin: document.getElementById('isin').value.trim(),
+                    asset_name: document.getElementById('asset_name').value.trim(),
+                    purchase_value: parseFloat(document.getElementById('purchase_value').value),
+                    amount: parseFloat(document.getElementById('amount').value),
+                    investment_type: document.getElementById('investment_type').value
+                };
+                
+                console.log('📤 Enviando datos:', formData);
+                
+                try {
+                    const response = await fetch('/api/add-asset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showMessage('✅ Activo añadido correctamente', 'success');
+                        console.log('✅ Respuesta:', data);
+                        
+                        // Limpiar formulario después de 2 segundos
+                        setTimeout(() => {
+                            form.reset();
+                            submitBtn.disabled = false;
+                            submitText.style.display = 'inline';
+                            loading.style.display = 'none';
+                            
+                            // Notificar a la ventana principal
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.postMessage({ 
+                                    type: 'ASSET_ADDED',
+                                    success: true 
+                                }, '*');
+                            }
+                        }, 2000);
+                        
+                    } else {
+                        showMessage(`❌ Error: ${data.error || 'Error desconocido'}`, 'error');
+                        submitBtn.disabled = false;
+                        submitText.style.display = 'inline';
+                        loading.style.display = 'none';
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                    showMessage('❌ Error de conexión con el servidor', 'error');
+                    submitBtn.disabled = false;
+                    submitText.style.display = 'inline';
+                    loading.style.display = 'none';
+                }
+            });
+            
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = type;
+                messageDiv.style.display = 'block';
+                
+                // Auto-ocultar después de 5 segundos
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Escuchar mensajes para cerrar ventana
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'CLOSE_ADD_WINDOW') {
+                    window.close();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

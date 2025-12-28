@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Activo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            margin: 0; padding: 20px; color: #fff; min-height: 100vh;
+        }
+        .container {
+            max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.05);
+            border-radius: 10px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 { color: #ff9800; text-align: center; margin-top: 0; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #66fcf1; font-weight: bold; }
+        input {
+            width: 100%; padding: 12px 15px; border: 1px solid #444; border-radius: 5px;
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 16px;
+        }
+        input:read-only { background: rgba(255,255,255,0.05); color: #aaa; }
+        button {
+            width: 100%; padding: 15px; background-color: #ff9800; color: #fff;
+            border: none; border-radius: 5px; font-size: 18px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; transition: background 0.3s;
+        }
+        button:hover { background-color: #e68a00; }
+        button:disabled { background-color: #777; cursor: not-allowed; }
+        .button-group { display: flex; gap: 10px; margin-top: 30px; }
+        .button-group button { flex: 1; }
+        .btn-secondary { background-color: #666; }
+        .btn-secondary:hover { background-color: #555; }
+        #message {
+            margin-top: 20px; padding: 15px; border-radius: 5px;
+            display: none; text-align: center; font-weight: bold;
+        }
+        .success { background-color: rgba(0,255,0,0.1); color: #00FF00; border: 1px solid #00FF00; }
+        .error { background-color: rgba(255,0,0,0.1); color: #FF0000; border: 1px solid #FF0000; }
+        .info { background-color: rgba(255,152,0,0.1); color: #ff9800; border: 1px solid #ff9800; }
+        .loading {
+            display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff9800; border-radius: 50%; animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }
+        }
+        .assets-list {
+            max-height: 300px; overflow-y: auto; margin-bottom: 20px;
+            border: 1px solid #444; border-radius: 5px; padding: 10px;
+        }
+        .asset-item {
+            padding: 10px; border-bottom: 1px solid #444; cursor: pointer;
+            transition: background 0.3s;
+        }
+        .asset-item:hover { background: rgba(255,255,255,0.1); }
+        .asset-item.selected {
+            background: rgba(255,152,0,0.2); border-left: 3px solid #ff9800;
+        }
+        .asset-name {
+            font-weight: bold; color: #66fcf1;
+        }
+        .asset-details {
+            font-size: 12px; color: #aaa; margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✏️ Editar Activo</h1>
+        
+        <div id="loading-assets" style="text-align: center; padding: 20px;">
+            <div class="loading"></div>
+            <p>Cargando activos...</p>
+        </div>
+        
+        <div id="error-container" style="display: none; text-align: center; padding: 20px; color: #ff6b6b;">
+            <h3>❌ Error de conexión</h3>
+            <p>No se pudieron cargar los activos</p>
+            <button onclick="location.reload()" style="
+                background: #ff9800; color: white; border: none; 
+                padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                🔄 Reintentar
+            </button>
+        </div>
+        
+        <div id="assets-container" style="display: none;">
+            <div class="form-group">
+                <label>Selecciona un activo para editar:</label>
+                <div class="assets-list" id="assets-list">
+                    <!-- Los activos se cargarán aquí -->
+                </div>
+            </div>
+            
+            <form id="edit-asset-form" style="display: none;">
+                <div class="form-group">
+                    <label for="edit-isin">ISIN / Ticker:</label>
+                    <input type="text" id="edit-isin" name="isin" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-asset_name">Nombre del Activo:</label>
+                    <input type="text" id="edit-asset_name" name="asset_name" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-purchase_value">Nuevo Valor de Compra (€):</label>
+                    <input type="number" id="edit-purchase_value" name="purchase_value" 
+                           step="0.01" min="0" placeholder="Dejar en 0 para no cambiar">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-amount">Nueva Cantidad (€):</label>
+                    <input type="number" id="edit-amount" name="amount" 
+                           step="0.01" min="0" placeholder="Dejar en 0 para no cambiar">
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" id="submit-btn">
+                        <span id="submit-text">💾 Guardar Cambios</span>
+                        <span id="loading" style="display: none;">
+                            <span class="loading"></span> Guardando...
+                        </span>
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="window.close()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="no-assets" style="display: none; text-align: center; padding: 30px;">
+            <p>📭 No hay activos para editar</p>
+            <p><small>Primero añade activos desde la página principal</small></p>
+            <button onclick="window.close()" style="
+                background: #666; color: white; border: none; 
+                padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                Cerrar
+            </button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📝 Formulario de editar activo cargado');
+            
+            let allAssets = [];
+            
+            // Cargar activos al iniciar
+            loadAssets();
+            
+            async function loadAssets() {
+                try {
+                    console.log('📡 Intentando cargar activos desde /api/portfolio...');
+                    
+                    const response = await fetch('/api/portfolio');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('📊 Respuesta API:', data);
+                    
+                    if (data.success && data.investments && data.investments.length > 0) {
+                        allAssets = data.investments;
+                        displayAssets(allAssets);
+                        document.getElementById('loading-assets').style.display = 'none';
+                        document.getElementById('assets-container').style.display = 'block';
+                        document.getElementById('error-container').style.display = 'none';
+                        document.getElementById('no-assets').style.display = 'none';
+                    } else {
+                        // No hay activos
+                        document.getElementById('loading-assets').style.display = 'none';
+                        document.getElementById('no-assets').style.display = 'block';
+                        document.getElementById('error-container').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('❌ Error cargando activos:', error);
+                    document.getElementById('loading-assets').style.display = 'none';
+                    document.getElementById('error-container').style.display = 'block';
+                    document.getElementById('assets-container').style.display = 'none';
+                    document.getElementById('no-assets').style.display = 'none';
+                    
+                    showMessage('❌ Error: ' + error.message, 'error');
+                }
+            }
+            
+            function displayAssets(assets) {
+                const container = document.getElementById('assets-list');
+                container.innerHTML = '';
+                
+                assets.forEach(asset => {
+                    const div = document.createElement('div');
+                    div.className = 'asset-item';
+                    div.dataset.isin = asset.isin;
+                    
+                    div.innerHTML = `
+                        <div class="asset-name">${escapeHtml(asset.asset_name)}</div>
+                        <div class="asset-details">
+                            ISIN: ${escapeHtml(asset.isin)} | 
+                            Compra: ${parseFloat(asset.purchase_value || 0).toFixed(2)}€ | 
+                            Cantidad: ${parseFloat(asset.amount || 0).toFixed(2)}€
+                        </div>
+                    `;
+                    
+                    div.addEventListener('click', function() {
+                        // Remover selección anterior
+                        document.querySelectorAll('.asset-item').forEach(item => {
+                            item.classList.remove('selected');
+                        });
+                        
+                        // Seleccionar este
+                        this.classList.add('selected');
+                        
+                        // Cargar datos en el formulario
+                        loadAssetData(asset);
+                    });
+                    
+                    container.appendChild(div);
+                });
+            }
+            
+            function loadAssetData(asset) {
+                document.getElementById('edit-isin').value = asset.isin || '';
+                document.getElementById('edit-asset_name').value = asset.asset_name || '';
+                document.getElementById('edit-purchase_value').value = '';
+                document.getElementById('edit-amount').value = '';
+                
+                document.getElementById('edit-asset-form').style.display = 'block';
+                // Scroll al formulario
+                document.getElementById('edit-asset-form').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Manejar envío del formulario
+            const form = document.getElementById('edit-asset-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const loading = document.getElementById('loading');
+            const messageDiv = document.getElementById('message');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const isin = document.getElementById('edit-isin').value;
+                if (!isin) {
+                    showMessage('❌ Selecciona un activo primero', 'error');
+                    return;
+                }
+                
+                const purchaseValue = parseFloat(document.getElementById('edit-purchase_value').value) || 0;
+                const amount = parseFloat(document.getElementById('edit-amount').value) || 0;
+                
+                if (purchaseValue === 0 && amount === 0) {
+                    showMessage('⚠️ Introduce al menos un valor para cambiar', 'info');
+                    return;
+                }
+                
+                // Mostrar loading
+                submitBtn.disabled = true;
+                submitText.style.display = 'none';
+                loading.style.display = 'inline';
+                
+                const formData = {
+                    isin: isin,
+                    purchase_value: purchaseValue,
+                    amount: amount
+                };
+                
+                console.log('📤 Enviando datos de edición:', formData);
+                
+                try {
+                    const response = await fetch('/api/edit-asset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showMessage('✅ Activo actualizado correctamente', 'success');
+                        console.log('✅ Respuesta:', data);
+                        
+                        // Recargar lista después de 2 segundos
+                        setTimeout(() => {
+                            loadAssets();
+                            form.reset();
+                            document.getElementById('edit-asset-form').style.display = 'none';
+                            
+                            submitBtn.disabled = false;
+                            submitText.style.display = 'inline';
+                            loading.style.display = 'none';
+                            
+                            // Notificar a la ventana principal
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.postMessage({ 
+                                    type: 'ASSET_EDITED',
+                                    success: true 
+                                }, '*');
+                            }
+                        }, 2000);
+                        
+                    } else {
+                        showMessage(`❌ Error: ${data.error || 'Error desconocido'}`, 'error');
+                        submitBtn.disabled = false;
+                        submitText.style.display = 'inline';
+                        loading.style.display = 'none';
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                    showMessage('❌ Error de conexión con el servidor', 'error');
+                    submitBtn.disabled = false;
+                    submitText.style.display = 'inline';
+                    loading.style.display = 'none';
+                }
+            });
+            
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = type;
+                messageDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            // Reintentar cargar si hay error
+            window.retryLoad = function() {
+                document.getElementById('error-container').style.display = 'none';
+                document.getElementById('loading-assets').style.display = 'block';
+                loadAssets();
+            };
+        });
+    </script>
+</body>
+</html>

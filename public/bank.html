@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bancos & Brokers - Cartera de Inversión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .bank-totals {
+            background-color: #1f2833;
+            color: #66fcf1 !important;
+            font-weight: bold;
+        }
+        .bank-totals td {
+            color: #66fcf1 !important;
+        }
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #ff9800;
+        }
+        @media (max-width: 768px) {
+            .table {
+                font-size: 12px;
+            }
+            .table td, .table th {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar" id="navbar">
+        <div class="navbar-content">
+            <a href="/">Cartera Completa</a>
+            <a href="/tables">Cartera por Tipos</a>
+            <a href="/pie-chart">Composición Cartera</a>
+            <a href="/investment-categories">Gráfica por Activo</a>
+            <a href="/bank">Bancos & Brokers</a>
+            <a href="/graphs">Gráficas</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Bancos & Brokers</h1>
+        
+        <div class="info-box">
+            <p>💡 <strong>Información:</strong> Esta tabla muestra la distribución de tu efectivo entre diferentes entidades bancarias y plataformas de inversión.</p>
+            <p>Los porcentajes representan el rendimiento estimado o interés de cada cuenta.</p>
+        </div>
+        
+        <!-- Tabla de bancos -->
+        <table class="table" id="bank-table">
+            <thead>
+                <tr>
+                    <th>Banco / Plataforma</th>
+                    <th>Inversión (€)</th>
+                    <th>Rendimiento (%)</th>
+                    <th>Resultado Total (€)</th>
+                </tr>
+            </thead>
+            <tbody id="bank-body">
+                <!-- Los datos se cargarán con JavaScript -->
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px;">
+                        <div style="width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid #00FF00; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        <p style="margin-top: 15px;">Cargando datos bancarios...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Resumen -->
+        <div id="bank-summary" style="margin-top: 30px; display: none;">
+            <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px;">
+                <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; min-width: 200px;">
+                    <h3 style="color: #ff9800; margin-top: 0;">📊 Resumen</h3>
+                    <p><strong>Total Invertido:</strong> <span id="total-invested">0</span>€</p>
+                    <p><strong>Total Resultado:</strong> <span id="total-result">0</span>€</p>
+                    <p><strong>Número de cuentas:</strong> <span id="account-count">0</span></p>
+                </div>
+                <div style="background: rgba(0, 255, 0, 0.1); padding: 15px; border-radius: 10px; min-width: 200px;">
+                    <h3 style="color: #00FF00; margin-top: 0;">🏆 Mejores</h3>
+                    <p><strong>Mayor inversión:</strong> <span id="top-investment">-</span></p>
+                    <p><strong>Mejor rendimiento:</strong> <span id="top-yield">-</span>%</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notas -->
+        <div style="margin-top: 40px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; font-size: 14px; color: #aaa;">
+            <p>📝 <strong>Notas:</strong></p>
+            <ul style="margin-left: 20px;">
+                <li>Los datos se cargan desde una API local que simula información bancaria.</li>
+                <li>En una versión real, estos datos podrían conectarse a APIs bancarias o importarse desde CSVs.</li>
+                <li>Los porcentajes de rendimiento son ilustrativos para testing.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏦 Página bank.html cargada');
+            loadBankData();
+            
+            // Estilo para spinner
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+        
+        // Cargar datos bancarios
+        async function loadBankData() {
+            try {
+                console.log('🏧 Obteniendo datos bancarios...');
+                const response = await fetch('/api/bank');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Datos bancarios recibidos:', data);
+                
+                if (data.success && data.banks && data.banks.length > 0) {
+                    renderBankTable(data.banks);
+                    calculateSummary(data.banks);
+                } else {
+                    showBankError('No hay datos bancarios disponibles');
+                }
+            } catch (error) {
+                console.error('❌ Error bancario:', error);
+                showBankError('No se pudieron cargar los datos: ' + error.message);
+                
+                // Datos de ejemplo como fallback
+                const exampleBanks = getExampleBankData();
+                renderBankTable(exampleBanks);
+                calculateSummary(exampleBanks);
+            }
+        }
+        
+        // Renderizar tabla de bancos
+        function renderBankTable(banks) {
+            const tbody = document.getElementById('bank-body');
+            
+            if (!banks || banks.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 30px; color: #888;">
+                            No hay datos bancarios registrados
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            let totalInvested = 0;
+            let totalResult = 0;
+            
+            banks.forEach((bank, index) => {
+                const isTotalRow = bank[0] === "TOTALES" || bank.name === "TOTALES";
+                const rowClass = isTotalRow ? 'bank-totals' : '';
+                
+                const name = bank[0] || bank.name || 'Sin nombre';
+                const investment = bank[1] || bank.investment || 0;
+                const yieldPercent = bank[2] || bank.yield || 0;
+                
+                // Calcular resultado
+                let result = investment;
+                if (yieldPercent && typeof yieldPercent === 'number') {
+                    result = investment + (investment * yieldPercent / 100);
+                } else if (bank[3]) {
+                    result = bank[3]; // Si ya viene calculado
+                } else if (bank.result) {
+                    result = bank.result;
+                }
+                
+                // Acumular totales (excluir fila de totales del cálculo)
+                if (!isTotalRow) {
+                    totalInvested += parseFloat(investment) || 0;
+                    totalResult += parseFloat(result) || 0;
+                }
+                
+                html += `
+                    <tr class="${rowClass}">
+                        <td>${escapeHtml(name)}</td>
+                        <td>${formatCurrency(investment)}</td>
+                        <td>${isTotalRow ? '' : (yieldPercent + '%')}</td>
+                        <td>${formatCurrency(result)}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            
+            // Mostrar resumen
+            document.getElementById('bank-summary').style.display = 'block';
+        }
+        
+        // Calcular y mostrar resumen
+        function calculateSummary(banks) {
+            if (!banks || banks.length === 0) return;
+            
+            let totalInvested = 0;
+            let totalResult = 0;
+            let topInvestment = { name: '', amount: 0 };
+            let topYield = { name: '', yield: 0 };
+            let accountCount = 0;
+            
+            banks.forEach(bank => {
+                const isTotalRow = bank[0] === "TOTALES" || bank.name === "TOTALES";
+                
+                if (!isTotalRow) {
+                    accountCount++;
+                    
+                    const name = bank[0] || bank.name || '';
+                    const investment = parseFloat(bank[1] || bank.investment || 0);
+                    const yieldPercent = parseFloat(bank[2] || bank.yield || 0);
+                    
+                    totalInvested += investment;
+                    
+                    // Calcular resultado
+                    let result = investment;
+                    if (yieldPercent) {
+                        result = investment + (investment * yieldPercent / 100);
+                    } else if (bank[3]) {
+                        result = parseFloat(bank[3]);
+                    } else if (bank.result) {
+                        result = parseFloat(bank.result);
+                    }
+                    
+                    totalResult += result;
+                    
+                    // Encontrar mayor inversión
+                    if (investment > topInvestment.amount) {
+                        topInvestment = { name, amount: investment };
+                    }
+                    
+                    // Encontrar mejor rendimiento
+                    if (yieldPercent > topYield.yield) {
+                        topYield = { name, yield: yieldPercent };
+                    }
+                }
+            });
+            
+            // Actualizar UI
+            document.getElementById('total-invested').textContent = formatCurrency(totalInvested);
+            document.getElementById('total-result').textContent = formatCurrency(totalResult);
+            document.getElementById('account-count').textContent = accountCount;
+            document.getElementById('top-investment').textContent = `${topInvestment.name}: ${formatCurrency(topInvestment.amount)}`;
+            document.getElementById('top-yield').textContent = `${topYield.name}: ${topYield.yield}%`;
+        }
+        
+        // Datos de ejemplo (fallback)
+        function getExampleBankData() {
+            return [
+                ["Kutxabank Nomina", 6295.94, 0],
+                ["Kutxabank Conjunta", 391.74, 0],
+                ["Trade Republic", 2050, 1.71],
+                ["Revolut", 300, 1.51],
+                ["Bit2Me", 800, 0],
+                ["My Investor", 900, 0],
+                ["TOTALES", 10737.68, "", 10737.68]
+            ];
+        }
+        
+        // Mostrar error
+        function showBankError(message) {
+            const tbody = document.getElementById('bank-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <h3>⚠️  Atención</h3>
+                        <p>${message}</p>
+                        <p><small>Mostrando datos de ejemplo para demostración</small></p>
+                        <button onclick="loadBankData()" style="
+                            background: #ff9800;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            margin-top: 20px;
+                        ">Reintentar conexión real</button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Funciones auxiliares
+        function formatCurrency(value) {
+            const num = parseFloat(value) || 0;
+            return new Intl.NumberFormat('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num) + '€';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

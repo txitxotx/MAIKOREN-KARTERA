@@ -1,0 +1,483 @@
+cd /Users/Txitxo/Desktop/para vercel/inverweb
+
+cat > public/pie-chart.html << 'EOF'
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composición de Cartera - Gráfico Pastel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Plotly.js para gráficos interactivos -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .chart-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            width: 45%;
+            min-width: 500px;
+            transition: all 0.3s ease;
+        }
+        .chart-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .chart-title {
+            color: #00FF00;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        #pie-chart, #bar-chart {
+            width: 100%;
+            height: 500px;
+        }
+        .summary-table {
+            width: 100%;
+            margin-top: 40px;
+            border-collapse: collapse;
+        }
+        .summary-table th {
+            background-color: #1f2833;
+            color: #66fcf1;
+            padding: 15px;
+            text-align: left;
+        }
+        .summary-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .summary-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .percentage-cell {
+            font-weight: bold;
+        }
+        .positive { color: #00FF00; }
+        .negative { color: #FF0000; }
+        
+        @media (max-width: 1200px) {
+            .chart-wrapper {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar" id="navbar">
+        <div class="navbar-content">
+            <a href="/">Cartera Completa</a>
+            <a href="/tables">Cartera por Tipos</a>
+            <a href="/pie-chart">Composición Cartera</a>
+            <a href="/investment-categories">Gráfica por Activo</a>
+            <a href="/bank">Bancos & Brokers</a>
+            <a href="/graphs">Gráficas</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Composición de la Cartera</h1>
+        <p style="text-align: center; color: #ccc; margin-bottom: 30px;">
+            Visualización interactiva de la distribución de tu cartera de inversión
+        </p>
+        
+        <!-- Contenedor de gráficos -->
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <h2 class="chart-title">📊 Distribución por Categoría</h2>
+                <div id="pie-chart"></div>
+            </div>
+            
+            <div class="chart-wrapper">
+                <h2 class="chart-title">📈 Valor por Categoría</h2>
+                <div id="bar-chart"></div>
+            </div>
+        </div>
+        
+        <!-- Tabla de resumen -->
+        <h2 style="margin-top: 60px; color: #ff9800;">📋 Resumen Detallado</h2>
+        <table class="summary-table" id="summary-table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th>Valor Total (€)</th>
+                    <th>Porcentaje</th>
+                    <th>Nº de Activos</th>
+                    <th>Rendimiento Medio</th>
+                </tr>
+            </thead>
+            <tbody id="summary-body">
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        <div style="width: 40px; height: 40px; border: 4px solid #333; 
+                             border-top: 4px solid #00FF00; border-radius: 50%; 
+                             animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        <p style="margin-top: 15px;">Calculando composición de cartera...</p>
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr id="total-row" style="display: none;">
+                    <td><strong>TOTAL</strong></td>
+                    <td id="total-value">0€</td>
+                    <td id="total-percentage">100%</td>
+                    <td id="total-assets">0</td>
+                    <td id="total-yield">0%</td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <!-- Información adicional -->
+        <div style="margin-top: 40px; padding: 20px; background: rgba(255, 152, 0, 0.1); 
+             border-radius: 10px; border-left: 4px solid #ff9800;">
+            <h3 style="color: #ff9800; margin-top: 0;">💡 Información</h3>
+            <p>Los gráficos muestran la distribución actual de tu cartera por categorías de inversión.</p>
+            <p><strong>Gráfico circular:</strong> Proporción de cada categoría en porcentaje.</p>
+            <p><strong>Gráfico de barras:</strong> Valor monetario por categoría.</p>
+            <p>Haz clic en cualquier segmento del gráfico circular para ver detalles.</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de colores para las categorías
+        const CATEGORY_COLORS = {
+            'dca': '#FF6B6B',
+            'renta_fija': '#4ECDC4',
+            'renta_variable': '#45B7D1',
+            'cryptomonedas': '#96CEB4',
+            'acciones': '#FFEAA7',
+            'crowfounding': '#DDA0DD',
+            'epsv': '#98D8C8',
+            'capital_riesgo': '#F7DC6F'
+        };
+        
+        const CATEGORY_LABELS = {
+            'dca': 'DCA RF Y RV',
+            'renta_fija': 'Renta Fija',
+            'renta_variable': 'Renta Variable',
+            'cryptomonedas': 'Cryptomonedas',
+            'acciones': 'Acciones',
+            'crowfounding': 'Crowfounding',
+            'epsv': 'EPSV',
+            'capital_riesgo': 'Capital Riesgo'
+        };
+        
+        // Cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🥧 Página pie-chart.html cargada');
+            loadPortfolioData();
+            
+            // Añadir animación de spinner
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+        
+        // Cargar datos de la cartera
+        async function loadPortfolioData() {
+            try {
+                console.log('📊 Obteniendo datos para gráficos...');
+                const response = await fetch('/api/portfolio');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Datos recibidos:', data);
+                
+                if (data.success && data.investments && data.investments.length > 0) {
+                    processAndDisplayCharts(data.investments);
+                } else {
+                    showError('No hay datos de inversión disponibles');
+                    // Usar datos de ejemplo
+                    const exampleData = getExampleData();
+                    processAndDisplayCharts(exampleData);
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Error al cargar datos: ' + error.message);
+                // Usar datos de ejemplo como fallback
+                const exampleData = getExampleData();
+                processAndDisplayCharts(exampleData);
+            }
+        }
+        
+        // Procesar datos y mostrar gráficos
+        function processAndDisplayCharts(investments) {
+            // Agrupar inversiones por categoría
+            const categories = {};
+            
+            investments.forEach(inv => {
+                const category = inv.investment_type || 'renta_variable';
+                const categoryKey = getCategoryKey(category);
+                const value = parseFloat(inv.total_money || inv.amount || 0);
+                
+                if (!categories[categoryKey]) {
+                    categories[categoryKey] = {
+                        name: CATEGORY_LABELS[categoryKey] || categoryKey,
+                        total: 0,
+                        count: 0,
+                        avgYield: 0,
+                        yields: []
+                    };
+                }
+                
+                categories[categoryKey].total += value;
+                categories[categoryKey].count += 1;
+                
+                // Calcular rendimiento si está disponible
+                const yieldVal = parseFloat(inv.profit_loss_percentage || 0);
+                if (!isNaN(yieldVal)) {
+                    categories[categoryKey].yields.push(yieldVal);
+                }
+            });
+            
+            // Calcular rendimiento promedio por categoría
+            Object.keys(categories).forEach(key => {
+                const cat = categories[key];
+                if (cat.yields.length > 0) {
+                    cat.avgYield = cat.yields.reduce((a, b) => a + b, 0) / cat.yields.length;
+                }
+            });
+            
+            // Calcular totales
+            const totalValue = Object.values(categories).reduce((sum, cat) => sum + cat.total, 0);
+            
+            // Crear datos para gráficos
+            const pieData = [];
+            const barData = [];
+            const labels = [];
+            const values = [];
+            const colors = [];
+            
+            Object.keys(categories).forEach(key => {
+                const cat = categories[key];
+                const percentage = totalValue > 0 ? (cat.total / totalValue * 100) : 0;
+                
+                // Datos para gráfico circular
+                pieData.push({
+                    name: cat.name,
+                    y: cat.total,
+                    percentage: percentage.toFixed(2)
+                });
+                
+                // Datos para gráfico de barras
+                labels.push(cat.name);
+                values.push(cat.total);
+                colors.push(CATEGORY_COLORS[key] || '#888');
+            });
+            
+            // Ordenar por valor descendente
+            pieData.sort((a, b) => b.y - a.y);
+            
+            // Renderizar gráficos
+            renderPieChart(pieData, totalValue);
+            renderBarChart(labels, values, colors);
+            renderSummaryTable(categories, totalValue);
+        }
+        
+        // Renderizar gráfico circular
+        function renderPieChart(data, totalValue) {
+            const trace = {
+                values: data.map(d => d.y),
+                labels: data.map(d => `${d.name} (${d.percentage}%)`),
+                type: 'pie',
+                hole: 0.4,
+                marker: {
+                    colors: data.map((d, i) => Object.values(CATEGORY_COLORS)[i % Object.keys(CATEGORY_COLORS).length])
+                },
+                textinfo: 'label+percent',
+                textposition: 'outside',
+                hoverinfo: 'label+value+percent',
+                hovertemplate: '<b>%{label}</b><br>Valor: €%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>',
+                pull: data.map((d, i) => i === 0 ? 0.1 : 0) // Efecto destacar el mayor
+            };
+            
+            const layout = {
+                title: {
+                    text: `Total Cartera: €${totalValue.toLocaleString('es-ES', {minimumFractionDigits: 2})}`,
+                    font: { size: 16, color: '#fff' }
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#fff', family: 'Roboto' },
+                showlegend: true,
+                legend: {
+                    x: 1.1,
+                    y: 0.5,
+                    font: { size: 12, color: '#ccc' },
+                    bgcolor: 'rgba(30, 30, 30, 0.8)',
+                    bordercolor: '#444',
+                    borderwidth: 1
+                },
+                margin: { l: 20, r: 200, b: 20, t: 50 }
+            };
+            
+            Plotly.newPlot('pie-chart', [trace], layout, { responsive: true });
+        }
+        
+        // Renderizar gráfico de barras
+        function renderBarChart(labels, values, colors) {
+            const trace = {
+                x: labels,
+                y: values,
+                type: 'bar',
+                marker: {
+                    color: colors,
+                    line: {
+                        color: 'rgba(255,255,255,0.8)',
+                        width: 1
+                    }
+                },
+                text: values.map(v => `€${v.toLocaleString('es-ES', {minimumFractionDigits: 2})}`),
+                textposition: 'auto',
+                hoverinfo: 'x+text'
+            };
+            
+            const layout = {
+                title: {
+                    text: 'Valor por Categoría (€)',
+                    font: { size: 16, color: '#fff' }
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#fff', family: 'Roboto' },
+                xaxis: {
+                    tickangle: -45,
+                    tickfont: { size: 12, color: '#ccc' }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Valor (€)',
+                        font: { color: '#ccc' }
+                    },
+                    gridcolor: 'rgba(255,255,255,0.1)',
+                    tickfont: { color: '#ccc' }
+                },
+                margin: { l: 80, r: 30, b: 100, t: 50 }
+            };
+            
+            Plotly.newPlot('bar-chart', [trace], layout, { responsive: true });
+        }
+        
+        // Renderizar tabla de resumen
+        function renderSummaryTable(categories, totalValue) {
+            const tbody = document.getElementById('summary-body');
+            let html = '';
+            let totalAssets = 0;
+            let weightedYield = 0;
+            
+            // Ordenar categorías por valor descendente
+            const sortedCategories = Object.entries(categories)
+                .sort((a, b) => b[1].total - a[1].total);
+            
+            sortedCategories.forEach(([key, cat]) => {
+                const percentage = totalValue > 0 ? (cat.total / totalValue * 100) : 0;
+                const yieldClass = cat.avgYield > 0 ? 'positive' : (cat.avgYield < 0 ? 'negative' : '');
+                
+                html += `
+                    <tr>
+                        <td><strong>${cat.name}</strong></td>
+                        <td>${formatCurrency(cat.total)}</td>
+                        <td class="percentage-cell">${percentage.toFixed(2)}%</td>
+                        <td>${cat.count}</td>
+                        <td class="${yieldClass}">${cat.avgYield.toFixed(2)}%</td>
+                    </tr>
+                `;
+                
+                totalAssets += cat.count;
+                weightedYield += cat.total * cat.avgYield;
+            });
+            
+            tbody.innerHTML = html;
+            
+            // Calcular rendimiento ponderado total
+            const totalYield = totalValue > 0 ? (weightedYield / totalValue) : 0;
+            const yieldClass = totalYield > 0 ? 'positive' : (totalYield < 0 ? 'negative' : '');
+            
+            // Actualizar fila de totales
+            document.getElementById('total-row').style.display = 'table-row';
+            document.getElementById('total-value').textContent = formatCurrency(totalValue);
+            document.getElementById('total-percentage').textContent = '100%';
+            document.getElementById('total-assets').textContent = totalAssets;
+            document.getElementById('total-yield').textContent = totalYield.toFixed(2) + '%';
+            document.getElementById('total-yield').className = yieldClass;
+        }
+        
+        // Función auxiliar para mapear categorías
+        function getCategoryKey(category) {
+            const catLower = (category || '').toLowerCase();
+            if (catLower.includes('dca')) return 'dca';
+            if (catLower.includes('renta fija')) return 'renta_fija';
+            if (catLower.includes('renta variable')) return 'renta_variable';
+            if (catLower.includes('crypto')) return 'cryptomonedas';
+            if (catLower.includes('accion')) return 'acciones';
+            if (catLower.includes('crowd')) return 'crowfounding';
+            if (catLower.includes('epsv')) return 'epsv';
+            if (catLower.includes('capital riesgo')) return 'capital_riesgo';
+            return 'renta_variable';
+        }
+        
+        // Formatear moneda
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value) + '€';
+        }
+        
+        // Datos de ejemplo
+        function getExampleData() {
+            return [
+                { investment_type: 'DCA RF Y RV', total_money: 15000, profit_loss_percentage: 12.5 },
+                { investment_type: 'Renta Fija', total_money: 25000, profit_loss_percentage: 3.2 },
+                { investment_type: 'Renta Variable', total_money: 18000, profit_loss_percentage: 8.7 },
+                { investment_type: 'Cryptomonedas', total_money: 12000, profit_loss_percentage: 15.6 },
+                { investment_type: 'Crowfounding', total_money: 8000, profit_loss_percentage: 10.0 },
+                { investment_type: 'EPSV', total_money: 5000, profit_loss_percentage: 5.2 }
+            ];
+        }
+        
+        // Mostrar error
+        function showError(message) {
+            const tbody = document.getElementById('summary-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <h3>⚠️  Error</h3>
+                        <p>${message}</p>
+                        <p><small>Mostrando datos de ejemplo</small></p>
+                        <button onclick="loadPortfolioData()" style="
+                            background: #ff9800;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            margin-top: 20px;
+                        ">Reintentar</button>
+                    </td>
+                </tr>
+            `;
+        }
+    </script>
+</body>
+</html>
+EOF
