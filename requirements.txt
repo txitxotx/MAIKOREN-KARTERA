@@ -2,9 +2,7 @@ Flask==2.3.3
 multitasking>=0.0.13
 packaging==23.1
 typing-extensions==4.7.1
-yfinance==0.2.36
 matplotlib==3.7.2
-supabase==1.1.1
 httpx==0.24.1
 python-dotenv==1.0.0
 postgrest==1.0.0
