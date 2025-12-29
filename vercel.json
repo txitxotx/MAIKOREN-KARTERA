@@ -6,12 +6,11 @@
       "config": {
         "runtime": "python3.9",
         "installCommand": "python -m pip install -r requirements.txt"
-      },
+    },
     {
       "src": "public/**",
       "use": "@vercel/static"
-    }
-  ],
+    },
   "routes": [
     {
       "src": "/api/(.*)",
